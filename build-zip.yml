@@ -1,0 +1,37 @@
+name: Build theme ZIP
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          tools: composer
+
+      - run: composer install --no-dev --prefer-dist --no-progress
+      - run: yarn install --frozen-lockfile
+      - run: yarn run build
+
+      - name: Package theme
+        run: |
+          mkdir -p /tmp/package/non-profit-fse
+          rsync -a --exclude-from=.distignore --exclude='.git' ./ /tmp/package/non-profit-fse/
+          cd /tmp/package && zip -rq "$GITHUB_WORKSPACE/non-profit-fse.zip" non-profit-fse
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: non-profit-fse
+          path: non-profit-fse.zip
